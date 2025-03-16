@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Steganography - Hacker Style</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+    <h1>RStegan - Steganography Tool</h1>
+
+    <div class="container">
+        <div class="section">
+            <h2>Encode Text into Image</h2>
+            <form id="encodeForm" action="/encode" method="POST" enctype="multipart/form-data">
+                <!-- Dynamic Choose File -->
+                <div class="custom-file-input">
+                    <input type="file" id="encodeFile" name="image" required onchange="showFileName('encodeFile', 'encodeFileLabel')" />
+                    <label for="encodeFile" id="encodeFileLabel">Choose Image to Encode</label>
+                </div>
+                <textarea name="message" placeholder="Enter message to encode" required></textarea>
+                <button type="submit">Encode</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>Decode Text from Image</h2>
+            <form id="decodeForm" action="/decode" method="POST" enctype="multipart/form-data">
+                <!-- Dynamic Choose File -->
+                <div class="custom-file-input">
+                    <input type="file" id="decodeFile" name="image" required onchange="showFileName('decodeFile', 'decodeFileLabel')" />
+                    <label for="decodeFile" id="decodeFileLabel">Choose Image to Decode</label>
+                </div>
+                <button type="submit">Decode</button>
+            </form>
+            <p id="decodedMessage">{{ message }}</p>
+        </div>
+    </div>
+
+    <script>
+        // Show selected file name dynamically
+        function showFileName(inputId, labelId) {
+            const input = document.getElementById(inputId);
+            const label = document.getElementById(labelId);
+            if (input.files.length > 0) {
+                label.textContent = input.files[0].name;
+            } else {
+                label.textContent = 'Choose File';
+            }
+        }
+    </script>
+</body>
+</html>
