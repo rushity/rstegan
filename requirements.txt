@@ -5,7 +5,7 @@ gunicorn==23.0.0
 
 Jinja2==3.1.4
 
-PIL
+pillow==10.4.0
 
 
 requests==2.32.3
