@@ -17,11 +17,11 @@ def encode():
     if not image or not message:
         return "Missing image or message", 400
 
-    filename = secure_filename(image.filename)
-    filepath = os.path.join("/tmp", filename)
-    image.save(filepath)  # Save file temporarily
+    img = Image.open(image)
 
-    img = Image.open(filepath)
+    # Convert JPG to PNG (to avoid compression issues)
+    if img.format == "JPEG":
+        img = img.convert("RGB")  # Remove transparency (RGBA is not supported in JPEG)
 
     # Ensure image is in RGB mode
     if img.mode not in ("RGB", "RGBA"):
@@ -48,7 +48,8 @@ def encode():
 
                 index += 1
 
-    output_path = os.path.join("/tmp", "stego.png")
+    # Always save as PNG
+    output_path = "/tmp/stego.png"
     encoded.save(output_path, format="PNG")
 
     return send_file(output_path, mimetype='image/png', as_attachment=True, download_name='stego.png')
