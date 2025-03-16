@@ -19,13 +19,12 @@ def encode():
 
     img = Image.open(image)
 
-    # Convert JPG to PNG (to avoid compression issues)
-    if img.format == "JPEG":
-        img = img.convert("RGB")  # Remove transparency (RGBA is not supported in JPEG)
+    # Convert JPG or other formats to PNG
+    img = img.convert("RGB")
 
-    # Ensure image is in RGB mode
-    if img.mode not in ("RGB", "RGBA"):
-        img = img.convert("RGB")
+    # ✅ Step 4: Resize large images to max 1000px (to prevent mobile issues)
+    if max(img.size) > 1000:  
+        img.thumbnail((1000, 1000))
 
     encoded = img.copy()
     width, height = encoded.size
@@ -37,22 +36,18 @@ def encode():
     for y in range(height):
         for x in range(width):
             if index < len(message):
-                pixel = pixels[x, y]
-
-                if len(pixel) == 4:  # If the image has an alpha channel
-                    r, g, b, a = pixel
-                    pixels[x, y] = (r, g, ord(message[index]), a)  # Preserve alpha
-                else:
-                    r, g, b = pixel
-                    pixels[x, y] = (r, g, ord(message[index]))
-
+                r, g, b = pixels[x, y][:3]  # Ignore alpha
+                pixels[x, y] = (r, g, ord(message[index]))  # Store text in Blue channel
                 index += 1
 
-    # Always save as PNG
+    # Save strictly as PNG to prevent compression
     output_path = "/tmp/stego.png"
     encoded.save(output_path, format="PNG")
 
     return send_file(output_path, mimetype='image/png', as_attachment=True, download_name='stego.png')
+
+
+
 
 
 
@@ -64,15 +59,10 @@ def decode():
     if not image:
         return "No image provided", 400
 
-    filename = secure_filename(image.filename)
-    filepath = os.path.join("/tmp", filename)
-    image.save(filepath)  # Save file temporarily
+    img = Image.open(image)
 
-    img = Image.open(filepath)
-
-    # Ensure image is in RGB mode
-    if img.mode not in ("RGB", "RGBA"):
-        img = img.convert("RGB")
+    # Convert any image format to RGB to avoid issues
+    img = img.convert("RGB")
 
     pixels = img.load()
     width, height = img.size
@@ -80,18 +70,13 @@ def decode():
     message = ""
     for y in range(height):
         for x in range(width):
-            pixel = pixels[x, y]
-
-            if len(pixel) == 4:  # If the image has an alpha channel
-                r, g, b, a = pixel
-            else:
-                r, g, b = pixel
+            r, g, b = pixels[x, y][:3]  # Ignore alpha channel
 
             if b == 0:  # End of message
                 break
             message += chr(b)
 
-    message = message.rstrip('\0')  # Remove trailing null character
+    message = message.rstrip('\0')  # Remove extra null characters
 
     return render_template('index.html', message=message)
 
