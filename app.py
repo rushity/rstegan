@@ -2,10 +2,13 @@ from flask import Flask, render_template, request, send_file
 from PIL import Image
 import io
 
+import os
+from werkzeug.utils import secure_filename
+
+
 app = Flask(__name__)
 
-# Encode Text into Image
-# Encode Text into Image
+
 @app.route('/encode', methods=['POST'])
 def encode():
     image = request.files['image']
@@ -14,9 +17,13 @@ def encode():
     if not image or not message:
         return "Missing image or message", 400
 
-    img = Image.open(image)
+    filename = secure_filename(image.filename)
+    filepath = os.path.join("/tmp", filename)
+    image.save(filepath)  # Save file temporarily
 
-    # Ensure image is in RGB mode (removes alpha channel if present)
+    img = Image.open(filepath)
+
+    # Ensure image is in RGB mode
     if img.mode not in ("RGB", "RGBA"):
         img = img.convert("RGB")
 
@@ -41,11 +48,11 @@ def encode():
 
                 index += 1
 
-    output = io.BytesIO()
-    encoded.save(output, format='PNG')
-    output.seek(0)
+    output_path = os.path.join("/tmp", "stego.png")
+    encoded.save(output_path, format="PNG")
 
-    return send_file(output, mimetype='image/png', as_attachment=True, download_name='stego.png')
+    return send_file(output_path, mimetype='image/png', as_attachment=True, download_name='stego.png')
+
 
 
 # Decode Text from Image
@@ -56,9 +63,13 @@ def decode():
     if not image:
         return "No image provided", 400
 
-    img = Image.open(image)
+    filename = secure_filename(image.filename)
+    filepath = os.path.join("/tmp", filename)
+    image.save(filepath)  # Save file temporarily
 
-    # Ensure image is in RGB mode (removes alpha channel if present)
+    img = Image.open(filepath)
+
+    # Ensure image is in RGB mode
     if img.mode not in ("RGB", "RGBA"):
         img = img.convert("RGB")
 
