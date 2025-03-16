@@ -22,7 +22,7 @@ def encode():
     # Convert JPG or other formats to PNG
     img = img.convert("RGB")
 
-    # ✅ Step 4: Resize large images to max 1000px (to prevent mobile issues)
+    # Resize large images (max 1000px) to avoid mobile issues
     if max(img.size) > 1000:  
         img.thumbnail((1000, 1000))
 
@@ -30,22 +30,29 @@ def encode():
     width, height = encoded.size
     pixels = encoded.load()
 
-    message += '\0'  # Add null character to mark the end of the message
+    message_length = len(message)
+    message_bytes = [ord(char) for char in message]
+
+    # Store message length in the first pixel
+    r, g, b = pixels[0, 0][:3]
+    pixels[0, 0] = (message_length // 256, message_length % 256, b)  # Store length in first pixel
 
     index = 0
     for y in range(height):
         for x in range(width):
-            if index < len(message):
-                r, g, b = pixels[x, y][:3]  # Ignore alpha
-                pixels[x, y] = (r, g, ord(message[index]))  # Store text in Blue channel
+            if x == 0 and y == 0:  # Skip the first pixel (used for length)
+                continue
+
+            if index < message_length:
+                r, g, b = pixels[x, y][:3]
+                pixels[x, y] = (r, g, message_bytes[index])  # Store message in Blue channel
                 index += 1
 
-    # Save strictly as PNG to prevent compression
+    # Save as PNG
     output_path = "/tmp/stego.png"
     encoded.save(output_path, format="PNG")
 
     return send_file(output_path, mimetype='image/png', as_attachment=True, download_name='stego.png')
-
 
 
 
@@ -60,25 +67,30 @@ def decode():
         return "No image provided", 400
 
     img = Image.open(image)
-
-    # Convert any image format to RGB to avoid issues
     img = img.convert("RGB")
 
     pixels = img.load()
     width, height = img.size
 
+    # Read message length from the first pixel
+    message_length = (pixels[0, 0][0] * 256) + pixels[0, 0][1]
+
     message = ""
+    index = 0
     for y in range(height):
         for x in range(width):
-            r, g, b = pixels[x, y][:3]  # Ignore alpha channel
+            if x == 0 and y == 0:  # Skip the first pixel (contains length)
+                continue
 
-            if b == 0:  # End of message
+            if index < message_length:
+                r, g, b = pixels[x, y][:3]
+                message += chr(b)
+                index += 1
+            else:
                 break
-            message += chr(b)
-
-    message = message.rstrip('\0')  # Remove extra null characters
 
     return render_template('index.html', message=message)
+
 
 
 @app.route('/')
